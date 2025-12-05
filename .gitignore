@@ -11,3 +11,4 @@ dist/
 coverage/
 .nyc_output/
 *.tsbuildinfo
+apps/*/generated/

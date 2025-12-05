@@ -1,0 +1,2 @@
+CREATE DATABASE people_db;
+CREATE DATABASE event_db;
