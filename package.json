@@ -12,13 +12,23 @@
   "devDependencies": {
     "@commitlint/cli": "^19.6.0",
     "@commitlint/config-conventional": "^19.6.0",
+    "@stryker-mutator/core": "^9.4.0",
+    "@stryker-mutator/typescript-checker": "^9.4.0",
+    "@stryker-mutator/vitest-runner": "^9.4.0",
+    "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "@typescript-eslint/parser": "^8.17.0",
+    "@vitest/coverage-v8": "^4.0.15",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
     "eslint": "^9.17.0",
     "eslint-config-prettier": "^9.1.0",
     "husky": "^8.0.0",
     "lint-staged": "^15.2.10",
-    "prettier": "^3.4.2"
+    "prettier": "^3.4.2",
+    "supertest": "^7.1.4",
+    "vitest": "^4.0.15",
+    "wait-on": "^9.0.3"
   },
   "lint-staged": {
     "*.{js,ts,json,md,yml,yaml}": [
