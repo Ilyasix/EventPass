@@ -1,15 +1,7 @@
 import "dotenv/config";
-import express from "express";
-import { peopleRouter } from "./routes/people";
+import { createApp } from "./app";
 
-const app = express();
-app.use(express.json());
-
-app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "people-service" });
-});
-
-app.use("/people", peopleRouter);
+const app = createApp();
 
 const port = Number(process.env.PORT ?? 3001);
 app.listen(port, () => {
