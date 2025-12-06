@@ -1,6 +1,7 @@
 # EventPass (Mojo) — лабораторні 0–4
 
 **EventPass** — навчальний проєкт (монорепозиторій на `pnpm workspaces`) з двома сервісами:
+
 - **people-service** — довідник учасників/користувачів
 - **event-service** — події та реєстрації учасників на події
 
@@ -61,11 +62,13 @@
 ## Швидкий старт
 
 ### 1) Встановити залежності
+
 ```bash
 pnpm i
 ```
 
 ### 2) Запустити PostgreSQL (Docker)
+
 ```bash
 docker compose up -d
 docker ps | grep eventpass-postgres
@@ -76,11 +79,13 @@ docker ps | grep eventpass-postgres
 ### 3) Налаштувати `.env` для сервісів
 
 **people-service**
+
 ```bash
 cp apps/people-service/.env.example apps/people-service/.env
 ```
 
 **event-service**
+
 ```bash
 cp apps/event-service/.env.example apps/event-service/.env
 ```
@@ -88,6 +93,7 @@ cp apps/event-service/.env.example apps/event-service/.env
 ### 4) Згенерувати Prisma client і застосувати міграції (по сервісах)
 
 **people-service**
+
 ```bash
 cd apps/people-service
 pnpm db:generate
@@ -96,6 +102,7 @@ cd ../../
 ```
 
 **event-service**
+
 ```bash
 cd apps/event-service
 pnpm db:generate
@@ -106,11 +113,13 @@ cd ../../
 ### 5) Запустити сервіси (у різних терміналах)
 
 **people-service** (порт `3001`)
+
 ```bash
 pnpm --filter people-service dev
 ```
 
 **event-service** (порт `3002`)
+
 ```bash
 pnpm --filter event-service dev
 ```
@@ -120,12 +129,14 @@ pnpm --filter event-service dev
 ## Перевірка роботи (curl)
 
 ### Health-check
+
 ```bash
 curl -s http://localhost:3001/health
 curl -s http://localhost:3002/health
 ```
 
 ### 1) Створити Person
+
 ```bash
 curl -s -X POST http://localhost:3001/people \
   -H "Content-Type: application/json" \
@@ -133,6 +144,7 @@ curl -s -X POST http://localhost:3001/people \
 ```
 
 ### 2) Створити Event
+
 ```bash
 curl -s -X POST http://localhost:3002/events \
   -H "Content-Type: application/json" \
@@ -140,6 +152,7 @@ curl -s -X POST http://localhost:3002/events \
 ```
 
 ### 3) Зареєструвати Person на Event
+
 ```bash
 curl -s -X POST "http://localhost:3002/events/<EVENT_ID>/register" \
   -H "Content-Type: application/json" \
@@ -147,11 +160,13 @@ curl -s -X POST "http://localhost:3002/events/<EVENT_ID>/register" \
 ```
 
 ### 4) Отримати список реєстрацій
+
 ```bash
 curl -s "http://localhost:3002/events/<EVENT_ID>/registrations"
 ```
 
 ### 5) Перевірка валідації (очікується 400)
+
 ```bash
 curl -i -s -X POST http://localhost:3001/people \
   -H "Content-Type: application/json" \
@@ -163,15 +178,17 @@ curl -i -s -X POST http://localhost:3001/people \
 ## API (коротко)
 
 ### people-service (http://localhost:3001)
+
 - `GET /health`
 - `POST /people` — створення людини (Zod валідація)
 - `GET /people/:id` — отримання по id
 - `PATCH /people/:id` — часткове оновлення
 
 ### event-service (http://localhost:3002)
+
 - `GET /health`
 - `POST /events` — створення події
-- `POST /events/:id/register` — реєстрація людини на подію  
+- `POST /events/:id/register` — реєстрація людини на подію
   - перевіряє існування `personId` через `people-service`
   - унікальність забезпечує `@@unique([eventId, personId])`
 - `GET /events/:id/registrations` — список реєстрацій
@@ -183,6 +200,7 @@ curl -i -s -X POST http://localhost:3001/people \
 Ми генеруємо Prisma Client **окремо для кожного сервісу** в `apps/*/generated/prisma-client`, щоб клієнти не “перетирали” один одного.
 
 У скриптах використовується явне посилання на schema:
+
 - `prisma generate --schema prisma/schema.prisma`
 - `prisma migrate dev --schema prisma/schema.prisma`
 
@@ -204,16 +222,20 @@ pnpm build
 ## Відповідність лабораторним
 
 ### ЛР0 — Вибір ідеї
+
 - створено репозиторій та опис ідеї в `README.md`
 
 ### ЛР1 — Налаштування інструментів
+
 - робочий простір (`pnpm workspaces`), форматтер, лінтер, базові скрипти
 
 ### ЛР2 — Структура застосунку
+
 - двосервісна архітектура (people-service, event-service)
 - опис сценаріїв у документації (якщо є в `docs/`)
 
 ### ЛР3+ЛР4 (об’єднано в ЛР4) — Робота з віддаленими даними
+
 - PostgreSQL через Docker
 - Prisma + міграції
 - реальні CRUD/сценарії через HTTP, без статичних даних
