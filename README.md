@@ -1,252 +1,126 @@
-# EventPass (Mojo) — лабораторні 0–4
+# EventPass — microservices (Mojo)
 
-**EventPass** — навчальний проєкт (монорепозиторій на `pnpm workspaces`) з двома сервісами:
+Навчальний проєкт для курсу **«Розробка ПЗ на платформі Node.js»**: сервіс реєстрації учасників на події.
+Реалізовано **2 мікросервіси × 3 основні роути**, PostgreSQL через Prisma, тести (unit/integration/e2e) та мутаційне тестування.
 
-- **people-service** — довідник учасників/користувачів
-- **event-service** — події та реєстрації учасників на події
+> Примітка: технічні ендпоїнти типу `/health` можуть існувати для перевірки працездатності, але **не входять** у вимогу “3 роути на сервіс”.
 
 ---
 
-## Технології
-
-- Node.js (рекомендовано **18+**; перевірено на Node 22)
-- TypeScript
+## Стек
+- Node.js + TypeScript
 - Express
-- PostgreSQL (через Docker)
-- Prisma **6.19.1**
-- Zod (валідація запитів)
-- ESLint + Prettier (налаштовано ігнор для згенерованого Prisma client)
+- PostgreSQL (Docker) + Prisma **6.19.1**
+- Zod (валідація)
+- Vitest (unit/integration/e2e)
+- Stryker (mutation testing)
+- PNPM workspaces (монорепо)
 
 ---
 
 ## Структура репозиторію
-
-```
-.
-├── apps
-│   ├── people-service
-│   │   ├── prisma
-│   │   │   └── schema.prisma
-│   │   ├── src
-│   │   │   ├── main.ts
-│   │   │   ├── prisma.ts
-│   │   │   ├── routes
-│   │   │   │   └── people.ts
-│   │   │   └── validation
-│   │   │       └── people.ts
-│   │   ├── .env.example
-│   │   └── package.json
-│   └── event-service
-│       ├── prisma
-│       │   └── schema.prisma
-│       ├── src
-│       │   ├── main.ts
-│       │   ├── prisma.ts
-│       │   ├── routes
-│       │   │   └── events.ts
-│       │   └── validation
-│       │       └── events.ts
-│       ├── .env.example
-│       └── package.json
-├── docker
-│   └── init.sql
-├── docker-compose.yml
-├── eslint.config.mjs
-├── prettier.config.cjs
-├── pnpm-workspace.yaml
-└── package.json
-```
+- `apps/people-service` — сервіс учасників
+- `apps/event-service` — сервіс подій/реєстрацій
+- `packages/shared` — спільні типи/хелпери
+- `docs/` — документація (архітектура, ER, сценарії)
+- `docker-compose.yml`, `docker/init.sql` — локальна БД
 
 ---
 
-## Швидкий старт
+## API (3 роути на сервіс)
+
+### people-service (порт за замовчуванням: `3001`, для тестів: `3101`)
+1) `GET /people` — список учасників  
+2) `POST /people` — створити учасника  
+3) `GET /people/:id` — отримати учасника за id  
+
+### event-service (порт за замовчуванням: `3002`, для тестів: `3102`)
+1) `GET /events` — список подій  
+2) `POST /events` — створити подію  
+3) `POST /events/:id/register` — зареєструвати учасника на подію (з перевіркою `personId` через people-service)  
+
+---
+
+## Швидкий старт (локально)
 
 ### 1) Встановити залежності
-
 ```bash
-pnpm i
+pnpm install
 ```
 
-### 2) Запустити PostgreSQL (Docker)
-
+### 2) Запустити PostgreSQL
 ```bash
 docker compose up -d
-docker ps | grep eventpass-postgres
 ```
 
-> Ініціалізація створює **2 бази**: `people_db` та `event_db` (див. `docker/init.sql`).
-
-### 3) Налаштувати `.env` для сервісів
-
-**people-service**
-
+### 3) Міграції та генерація клієнта Prisma
 ```bash
-cp apps/people-service/.env.example apps/people-service/.env
+pnpm --filter people-service db:migrate --name init
+pnpm --filter event-service db:migrate --name init
 ```
 
-**event-service**
-
-```bash
-cp apps/event-service/.env.example apps/event-service/.env
-```
-
-### 4) Згенерувати Prisma client і застосувати міграції (по сервісах)
-
-**people-service**
-
-```bash
-cd apps/people-service
-pnpm db:generate
-pnpm db:migrate --name init
-cd ../../
-```
-
-**event-service**
-
-```bash
-cd apps/event-service
-pnpm db:generate
-pnpm db:migrate --name init
-cd ../../
-```
-
-### 5) Запустити сервіси (у різних терміналах)
-
-**people-service** (порт `3001`)
-
+### 4) Запуск сервісів (dev)
 ```bash
 pnpm --filter people-service dev
-```
-
-**event-service** (порт `3002`)
-
-```bash
 pnpm --filter event-service dev
 ```
 
 ---
 
-## Перевірка роботи (curl)
-
-### Health-check
-
-```bash
-curl -s http://localhost:3001/health
-curl -s http://localhost:3002/health
-```
-
-### 1) Створити Person
-
-```bash
-curl -s -X POST http://localhost:3001/people \
-  -H "Content-Type: application/json" \
-  -d '{"fullName":"Test User","email":"test@example.com","phone":"+380501234567"}'
-```
-
-### 2) Створити Event
-
-```bash
-curl -s -X POST http://localhost:3002/events \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Demo Event","startsAt":"2025-12-05T10:00:00.000Z","location":"Kyiv"}'
-```
-
-### 3) Зареєструвати Person на Event
-
-```bash
-curl -s -X POST "http://localhost:3002/events/<EVENT_ID>/register" \
-  -H "Content-Type: application/json" \
-  -d '{"personId":"<PERSON_ID>"}'
-```
-
-### 4) Отримати список реєстрацій
-
-```bash
-curl -s "http://localhost:3002/events/<EVENT_ID>/registrations"
-```
-
-### 5) Перевірка валідації (очікується 400)
-
-```bash
-curl -i -s -X POST http://localhost:3001/people \
-  -H "Content-Type: application/json" \
-  -d '{"fullName":"","email":"not-an-email","phone":"abc"}'
-```
-
----
-
-## API (коротко)
-
-### people-service (http://localhost:3001)
-
-- `GET /health`
-- `POST /people` — створення людини (Zod валідація)
-- `GET /people/:id` — отримання по id
-- `PATCH /people/:id` — часткове оновлення
-
-### event-service (http://localhost:3002)
-
-- `GET /health`
-- `POST /events` — створення події
-- `POST /events/:id/register` — реєстрація людини на подію
-  - перевіряє існування `personId` через `people-service`
-  - унікальність забезпечує `@@unique([eventId, personId])`
-- `GET /events/:id/registrations` — список реєстрацій
-
----
-
-## Prisma (важливо для монорепозиторію)
-
-Ми генеруємо Prisma Client **окремо для кожного сервісу** в `apps/*/generated/prisma-client`, щоб клієнти не “перетирали” один одного.
-
-У скриптах використовується явне посилання на schema:
-
-- `prisma generate --schema prisma/schema.prisma`
-- `prisma migrate dev --schema prisma/schema.prisma`
-
-> Папка `generated/` не має лінтитися — додано ignore в `eslint.config.mjs`.
-
----
-
-## Команди якості коду (root)
-
+## Скрипти (root)
 ```bash
 pnpm format
 pnpm lint
-pnpm test
 pnpm build
+pnpm test
 ```
 
 ---
 
-## Відповідність лабораторним
+## Тестування (ЛР5)
 
-### ЛР0 — Вибір ідеї
+### Unit
+```bash
+pnpm --filter people-service test:unit
+pnpm --filter event-service test:unit
+```
 
-- створено репозиторій та опис ідеї в `README.md`
+### Integration
+```bash
+pnpm --filter people-service test:integration
+pnpm --filter event-service test:integration
+```
 
-### ЛР1 — Налаштування інструментів
+### E2E (повний флоу)
+```bash
+pnpm --filter event-service test:e2e
+```
 
-- робочий простір (`pnpm workspaces`), форматтер, лінтер, базові скрипти
+### Coverage
+```bash
+pnpm --filter people-service test:cov
+pnpm --filter event-service test:cov
+```
 
-### ЛР2 — Структура застосунку
-
-- двосервісна архітектура (people-service, event-service)
-- опис сценаріїв у документації (якщо є в `docs/`)
-
-### ЛР3+ЛР4 (об’єднано в ЛР4) — Робота з віддаленими даними
-
-- PostgreSQL через Docker
-- Prisma + міграції
-- реальні CRUD/сценарії через HTTP, без статичних даних
+### Mutation testing (Stryker)
+```bash
+pnpm stryker run
+```
+HTML-звіт: `reports/mutation/mutation.html` (ігнорується в git).
 
 ---
 
-## Примітки
+## Документація (ЛР2)
+- `docs/architecture.md` — компоненти та взаємодія
+- `docs/data-model.md` — ER-модель даних
+- `docs/scenarios.md` — ключові сценарії та оновлення даних
 
-- Для локальної роботи **не комітьте** файли `.env` (комітиться тільки `.env.example`).
-- Якщо Docker контейнер вже існує і потрібно “з нуля”:
-  ```bash
-  docker compose down -v
-  docker compose up -d
-  ```
+---
+
+## План виконання лабораторних
+- [x] **ЛР0** Вибір ідеї, репозиторій, README
+- [x] **ЛР1 (08.10.2025)** Пакети, prettier/eslint, husky + commitlint
+- [x] **ЛР2 (22.10.2025)** Діаграми, ER, сценарії оновлення даних
+- [x] **ЛР4 (19.11.2025)** Інтеграція з БД (об’єднано з ЛР3)
+- [x] **ЛР5 (03.12.2025)** Unit + інтеграц. + E2E + mutation репорт
+- [ ] **ЛР6 (17.12.2025)** CI/CD, staging, доступ з інтернету
