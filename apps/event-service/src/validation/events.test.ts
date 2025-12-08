@@ -1,34 +1,46 @@
 import { describe, expect, it } from "vitest";
 import { createEventSchema, registerSchema } from "./events";
 
-describe("events validation", () => {
-  it("createEventSchema: accepts valid payload", () => {
-    const res = createEventSchema.safeParse({
-      title: "Demo",
-      startsAt: "2025-12-05T10:00:00.000Z",
+function issueMessages(result: ReturnType<typeof createEventSchema.safeParse>) {
+  if (result.success) return [];
+  return result.error.issues.map((i) => i.message);
+}
+
+describe("event validation", () => {
+  it("create: empty title -> exact message", () => {
+    const r = createEventSchema.safeParse({
+      title: "",
+      startsAt: new Date().toISOString(),
       location: "Kyiv",
     });
-    expect(res.success).toBe(true);
+    expect(r.success).toBe(false);
+    expect(issueMessages(r)).toContain("title is required");
   });
 
-  it("createEventSchema: rejects invalid date", () => {
-    const res = createEventSchema.safeParse({
-      title: "Demo",
+  it("create: empty location -> exact message", () => {
+    const r = createEventSchema.safeParse({
+      title: "Conf",
+      startsAt: new Date().toISOString(),
+      location: "",
+    });
+    expect(r.success).toBe(false);
+    expect(issueMessages(r)).toContain("location is required");
+  });
+
+  it("create: startsAt must be ISO date string -> exact message", () => {
+    const r = createEventSchema.safeParse({
+      title: "Conf",
       startsAt: "not-a-date",
       location: "Kyiv",
     });
-    expect(res.success).toBe(false);
+    expect(r.success).toBe(false);
+    expect(issueMessages(r)).toContain("startsAt must be ISO date string");
   });
 
-  it("registerSchema: accepts UUID", () => {
-    const res = registerSchema.safeParse({
-      personId: "550e8400-e29b-41d4-a716-446655440000",
-    });
-    expect(res.success).toBe(true);
-  });
-
-  it("registerSchema: rejects not UUID", () => {
-    const res = registerSchema.safeParse({ personId: "123" });
-    expect(res.success).toBe(false);
+  it("register: personId must be UUID -> exact message", () => {
+    const r = registerSchema.safeParse({ personId: "123" });
+    expect(r.success).toBe(false);
+    const msgs = r.success ? [] : r.error.issues.map((i) => i.message);
+    expect(msgs).toContain("personId must be UUID");
   });
 });
