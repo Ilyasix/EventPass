@@ -1,0 +1,16 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy people-service
+        run: curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_PEOPLE }}"
+
+      - name: Deploy event-service
+        run: curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_EVENT }}"
