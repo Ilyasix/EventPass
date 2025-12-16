@@ -1,9 +1,17 @@
 # EventPass — microservices (Mojo)
 
-Навчальний проєкт для курсу **«Розробка ПЗ на платформі Node.js»**: сервіс реєстрації учасників на події.
-Реалізовано **2 мікросервіси × 3 основні роути**, PostgreSQL через Prisma, тести (unit/integration/e2e) та мутаційне тестування.
+Навчальний проєкт для курсу **«Розробка ПЗ на платформі Node.js»**: система подій та реєстрації учасників.
+
+Реалізовано **2 мікросервіси × 3 основні роути**, PostgreSQL через Prisma, тести (unit/integration/e2e), мутаційне тестування та CI/CD (GitHub Actions + Render).
 
 > Примітка: технічні ендпоїнти типу `/health` можуть існувати для перевірки працездатності, але **не входять** у вимогу “3 роути на сервіс”.
+
+---
+
+## Посилання (staging / internet доступ)
+
+- **people-service:** https://people-service-yohg.onrender.com
+- **event-service:** https://event-service-ftyj.onrender.com
 
 ---
 
@@ -11,11 +19,13 @@
 
 - Node.js + TypeScript
 - Express
-- PostgreSQL (Docker) + Prisma **6.19.1**
+- PostgreSQL (Render/Docker) + Prisma **6.19.1**
 - Zod (валідація)
 - Vitest (unit/integration/e2e)
 - Stryker (mutation testing)
 - PNPM workspaces (монорепо)
+- GitHub Actions (CI/CD)
+- Render (Deploy + Postgres)
 
 ---
 
@@ -59,7 +69,7 @@ pnpm install
 docker compose up -d
 ```
 
-### 3) Міграції та генерація клієнта Prisma
+### 3) Міграції та генерація Prisma
 
 ```bash
 pnpm --filter people-service db:migrate --name init
@@ -133,11 +143,47 @@ HTML-звіт: `reports/mutation/mutation.html` (ігнорується в git).
 
 ---
 
+## CI/CD (ЛР6)
+
+### CI (GitHub Actions)
+
+Workflow: `.github/workflows/ci.yml`
+
+Перевіряє:
+
+- prettier (format check)
+- eslint
+- build
+- тести (unit/integration/e2e)
+- (опційно) commitlint / conventional commits
+
+### CD (GitHub Actions → Render)
+
+Workflow: `.github/workflows/cd.yml`
+
+Після пушу в `main` тригерить Render Deploy Hook-и для:
+
+- people-service
+- event-service
+
+Потрібні GitHub Secrets:
+
+- `RENDER_DEPLOY_HOOK_PEOPLE`
+- `RENDER_DEPLOY_HOOK_EVENT`
+
+> Для Render Postgres рекомендовано розділяти схеми:
+>
+> - people-service: `DATABASE_URL=... ?schema=people`
+> - event-service: `DATABASE_URL=... ?schema=event`
+
+---
+
 ## План виконання лабораторних
 
 - [x] **ЛР0** Вибір ідеї, репозиторій, README
 - [x] **ЛР1 (08.10.2025)** Пакети, prettier/eslint, husky + commitlint
 - [x] **ЛР2 (22.10.2025)** Діаграми, ER, сценарії оновлення даних
-- [x] **ЛР4 (19.11.2025)** Інтеграція з БД (об’єднано з ЛР3)
+- [x] **ЛР3 (05.11.2025)** Інтерактивний прототип (статичні дані)
+- [x] **ЛР4 (19.11.2025)** Інтеграція з БД, заміна статичних даних
 - [x] **ЛР5 (03.12.2025)** Unit + інтеграц. + E2E + mutation репорт
-- [ ] **ЛР6 (17.12.2025)** CI/CD, staging, доступ з інтернету
+- [x] **ЛР6 (17.12.2025)** CI/CD, staging, доступ з інтернету (Render)
