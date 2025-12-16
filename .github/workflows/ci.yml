@@ -41,12 +41,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
 
       - name: Enable Corepack (pnpm)
         run: |
           corepack enable
           corepack prepare pnpm@9.15.0 --activate
+          pnpm -v
+
+      - name: Get pnpm store directory
+        id: pnpm-store
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -61,20 +73,22 @@ jobs:
         run: pnpm build
 
       - name: Start Postgres
-        run: docker compose up -d
+        run: docker compose up -d postgres
 
       - name: Wait for Postgres
         run: |
+          CID="$(docker compose ps -q postgres)"
+          echo "Postgres container id: $CID"
           for i in {1..30}; do
-            if docker exec eventpass-postgres pg_isready -U eventpass >/dev/null 2>&1; then
-              echo "Postgres is ready";
-              exit 0;
+            if docker exec "$CID" pg_isready -U eventpass >/dev/null 2>&1; then
+              echo "Postgres is ready"
+              exit 0
             fi
-            echo "Waiting for Postgres... ($i/30)";
-            sleep 2;
+            echo "Waiting for Postgres... ($i/30)"
+            sleep 2
           done
-          echo "Postgres did not become ready in time";
-          docker logs eventpass-postgres || true
+          echo "Postgres did not become ready in time"
+          docker logs "$CID" || true
           exit 1
 
       - name: Apply DB migrations
