@@ -4,7 +4,16 @@ import prettier from "eslint-config-prettier";
 
 export default [
   {
-    ignores: ["**/node_modules/**", "**/dist/**", "**/generated/**", "**/prisma/migrations/**"],
+    ignores: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/generated/**",
+      "**/coverage/**",
+      "**/.stryker-tmp/**",
+      "**/reports/**",
+      "**/.turbo/**",
+      "**/.pnpm-store/**",
+    ],
   },
   {
     files: ["**/*.ts", "**/*.js"],

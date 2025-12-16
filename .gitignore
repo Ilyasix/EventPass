@@ -18,8 +18,11 @@ apps/*/generated/
 .stryker-tmp/
 reports/
 
-# Coverage output (Vitest)
-coverage/
+# Coverage
+**/coverage/
 
-# Test artifacts
-*.log
+# Build
+**/dist/
+
+# Prisma generated client (у тебя в apps/*/generated)
+apps/**/generated/
