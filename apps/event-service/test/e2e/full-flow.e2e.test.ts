@@ -28,6 +28,16 @@ function run(cmd: string) {
   execSync(cmd, { cwd: rootDir, stdio: "inherit" });
 }
 
+function waitExit(proc: ChildProcess, timeoutMs = 8000) {
+  return new Promise<void>((resolve) => {
+    const t = setTimeout(resolve, timeoutMs);
+    proc.once("exit", () => {
+      clearTimeout(t);
+      resolve();
+    });
+  });
+}
+
 describe("E2E: create person -> create event -> register -> list", () => {
   beforeAll(async () => {
     run("docker compose up -d");
@@ -59,6 +69,13 @@ describe("E2E: create person -> create event -> register -> list", () => {
   afterAll(async () => {
     if (eventProc && !eventProc.killed) eventProc.kill("SIGTERM");
     if (peopleProc && !peopleProc.killed) peopleProc.kill("SIGTERM");
+
+    await Promise.all([
+      eventProc ? waitExit(eventProc) : Promise.resolve(),
+      peopleProc ? waitExit(peopleProc) : Promise.resolve(),
+    ]);
+
+    run("docker compose down -v");
   }, 30_000);
 
   it("full flow works", async () => {

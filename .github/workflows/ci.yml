@@ -91,20 +91,20 @@ jobs:
           docker logs "$CID" || true
           exit 1
 
-      - name: Set DATABASE_URLs for CI
+      - name: Set DATABASE_URL for CI
         run: |
           echo "DATABASE_URL=postgresql://eventpass:eventpass@localhost:5432/people_db?schema=public" >> $GITHUB_ENV
-          echo "EVENT_DATABASE_URL=postgresql://eventpass:eventpass@localhost:5432/event_db?schema=public" >> $GITHUB_ENV
 
-      - name: Apply DB migrations
+      - name: Apply DB migrations (both services to same DB)
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
         run: |
-          DATABASE_URL="$DATABASE_URL" pnpm --filter people-service db:deploy
-          DATABASE_URL="$EVENT_DATABASE_URL" pnpm --filter event-service db:deploy
+          pnpm --filter people-service db:deploy
+          pnpm --filter event-service db:deploy
 
       - name: Tests (unit + integration + e2e)
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
-          EVENT_DATABASE_URL: ${{ env.EVENT_DATABASE_URL }}
         run: pnpm test
 
       - name: Stop Postgres
